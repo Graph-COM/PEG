@@ -6,7 +6,7 @@ This repository is for ogbl-ddi:
 
 2 layer PEG-DW
 ```
-python main.py --PE_method DW
+python main.py --PE_method DW --epochs 400 --lr 0.005
 ```
 
 2 layer PEG-LE+
