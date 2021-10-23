@@ -1,17 +1,15 @@
 # ogbl-ddi
 
-This repository includes the following example scripts:
+This repository is for ogbl-ddi:
 
-* **[MLP](https://github.com/snap-stanford/ogb/blob/master/examples/linkproppred/ddi/mlp.py)**: Full-batch MLP training based on Node2Vec features. This script requires node embeddings be saved in `embedding.pt`. To generate them, please run `python node2vec.py` [requires `torch-geometric>=1.5.0`].
-* **[GNN](https://github.com/snap-stanford/ogb/blob/master/examples/linkproppred/ddi/gnn.py)**: Full-batch GNN training using either the GCN or GraphSAGE operator (`--use_sage`) [requires `torch-geometric>=1.6.0`].
-* **[Matrix Factorization](https://github.com/snap-stanford/ogb/blob/master/examples/linkproppred/ddi/mf.py)**: Full-batch Matrix Factorization training.
+## Run
 
-## Training & Evaluation
-
+2 layer PEG-DW
 ```
-# Run with default config
-python mlp.py
+python main.py --PE_method DW
+```
 
-# Run with custom config
-python mlp.py --hidden_channels=128
+2 layer PEG-LE+
+```
+python random_partition.py --PE_method LE
 ```
