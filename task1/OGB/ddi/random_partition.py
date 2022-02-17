@@ -62,10 +62,10 @@ class SAGE(torch.nn.Module):
         super(SAGE, self).__init__()
 
         self.convs = torch.nn.ModuleList()
-        self.convs.append(SAGEConv(in_channels, hidden_channels))
+        self.convs.append(PESAGEconv(in_channels, hidden_channels))
         for _ in range(num_layers - 2):
-            self.convs.append(SAGEConv(hidden_channels, hidden_channels))
-        self.convs.append(SAGEConv(hidden_channels, out_channels))
+            self.convs.append(PESAGEconv(hidden_channels, hidden_channels))
+        self.output = PESAGEconv(hidden_channels, out_channels)
 
         self.dropout = dropout
 
@@ -73,12 +73,14 @@ class SAGE(torch.nn.Module):
         for conv in self.convs:
             conv.reset_parameters()
 
-    def forward(self, x, adj_t):
-        for conv in self.convs[:-1]:
-            x = conv(x, adj_t)
-            x = F.relu(x)
-            x = F.dropout(x, p=self.dropout, training=self.training)
-        x = self.convs[-1](x, adj_t)
+    def forward(self, x, adj_t, embeddings):
+        for conv in self.convs:
+            #x = conv(x, adj_t, embeddings)
+            x = conv(x, adj_t, embeddings)
+            #x = F.relu(x)
+            #x = F.dropout(x, p=self.dropout, training=self.training)
+        #x = self.output(x, adj_t, embeddings)
+        x = self.output(x, adj_t, embeddings)
         return x
 
 
@@ -94,6 +96,8 @@ class LinkPredictor(torch.nn.Module):
         self.lins.append(torch.nn.Linear(hidden_channels, out_channels))
 
         self.output = torch.nn.Linear(2,1)
+        #self.up = torch.nn.Linear(1,4)
+        #self.down = torch.nn.Linear(4,1)
         self.dropout = dropout
 
     def reset_parameters(self):
@@ -103,14 +107,17 @@ class LinkPredictor(torch.nn.Module):
     def forward(self, x_i, x_j, pos_i, pos_j):
         x = x_i * x_j
         pos_encode = ((pos_i - pos_j)**2).sum(dim=-1, keepdim=True)
+        
         for lin in self.lins[:-1]:
             x = lin(x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.lins[-1](x)
         out = self.output(torch.cat([x, pos_encode], 1))
+        #out = x
+        #out = self.up(pos_encode)
+        #out = self.down(out)
         return torch.sigmoid(out)
-
 
 def train(model, predictor, x, embeddings, adj_t, split_edge, optimizer, batch_size):
 
@@ -128,7 +135,8 @@ def train(model, predictor, x, embeddings, adj_t, split_edge, optimizer, batch_s
                            shuffle=True):
         optimizer.zero_grad()
 
-        h = model(x, edge_index, embeddings)
+        #h = model(x, edge_index, embeddings)
+        h = model(x, edge_index)
 
         edge = pos_train_edge[perm].t()
 
@@ -149,9 +157,10 @@ def train(model, predictor, x, embeddings, adj_t, split_edge, optimizer, batch_s
         torch.nn.utils.clip_grad_norm_(predictor.parameters(), 1.0)
 
         optimizer.step()
+        '''
         with torch.no_grad():
             predictor.output.weight[0][0].clamp_(1e-10,100)
-
+        '''
         num_examples = pos_out.size(0)
         total_loss += loss.item() * num_examples
         total_examples += num_examples
@@ -167,7 +176,8 @@ def test(model, predictor, x, embeddings, adj_t, split_edge, evaluator, batch_si
     row, col, _ = adj_t.coo()
     edge_index = torch.stack([col, row], dim=0)
 
-    h = model(x, edge_index, embeddings)
+    #h = model(x, edge_index, embeddings)
+    h = model(x, edge_index)
 
     pos_train_edge = split_edge['eval_train']['edge'].to(x.device)
     pos_valid_edge = split_edge['valid']['edge'].to(x.device)

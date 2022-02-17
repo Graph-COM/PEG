@@ -65,10 +65,10 @@ class SAGE(torch.nn.Module):
         super(SAGE, self).__init__()
 
         self.convs = torch.nn.ModuleList()
-        self.convs.append(SAGEConv(in_channels, hidden_channels))
+        self.convs.append(PESAGEconv(in_channels, hidden_channels))
         for _ in range(num_layers - 2):
-            self.convs.append(SAGEConv(hidden_channels, hidden_channels))
-        self.convs.append(SAGEConv(hidden_channels, out_channels))
+            self.convs.append(PESAGEconv(hidden_channels, hidden_channels))
+        self.output = PESAGEconv(hidden_channels, out_channels)
 
         self.dropout = dropout
 
@@ -76,12 +76,14 @@ class SAGE(torch.nn.Module):
         for conv in self.convs:
             conv.reset_parameters()
 
-    def forward(self, x, adj_t):
-        for conv in self.convs[:-1]:
-            x = conv(x, adj_t)
+    def forward(self, x, adj_t, embeddings):
+        for conv in self.convs:
+            #x = conv(x, adj_t, embeddings)
+            x = conv(x, adj_t, embeddings)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
-        x = self.convs[-1](x, adj_t)
+        #x = self.output(x, adj_t, embeddings)
+        x = self.output(x, adj_t, embeddings)
         return x
 
 
@@ -136,6 +138,7 @@ def train(model, predictor, data, embeddings, split_edge, optimizer, batch_size)
         optimizer.zero_grad()
 
         h = model(data.x, edge_index, embeddings)
+        #h = model(data.x, edge_index)
 
         edge = pos_train_edge[perm].t()
 
@@ -173,6 +176,7 @@ def test(model, predictor, data, embeddings, split_edge, evaluator, batch_size):
     predictor.eval()
 
     h = model(data.x, edge_index, embeddings)
+    #h = model(data.x, edge_index)
 
     pos_train_edge = split_edge['train']['edge'].to(h.device)
     pos_valid_edge = split_edge['valid']['edge'].to(h.device)
@@ -202,6 +206,7 @@ def test(model, predictor, data, embeddings, split_edge, evaluator, batch_size):
     edge_index = torch.stack([col, row], dim=0)
 
     h = model(data.x, edge_index, embeddings)
+    #h = model(data.x, edge_index)
 
     pos_test_preds = []
     for perm in DataLoader(range(pos_test_edge.size(0)), batch_size):
@@ -365,17 +370,13 @@ def main():
         optimizer = torch.optim.Adam(
             list(model.parameters()) + list(predictor.parameters()),
             lr=args.lr)
-        start_time = datetime.now()
         for epoch in range(1, 1 + args.epochs):
             loss = train(model, predictor, data, embeddings, split_edge, optimizer,
                          args.batch_size)
 
             if epoch % args.eval_steps == 0:
-                #test_time = datetime.now()
                 results = test(model, predictor, data, embeddings, split_edge, evaluator,
                                args.batch_size)
-                #end_test_time = datetime.now()
-                #print('test Duration: {}'.format(end_test_time - test_time))
                 for key, result in results.items():
                     loggers[key].add_result(run, result)
 
@@ -394,9 +395,6 @@ def main():
         for key in loggers.keys():
             print(key)
             loggers[key].print_statistics(run)
-        #end_time = datetime.now()
-        #print('Duration: {}'.format(end_time - start_time))
-
     for key in loggers.keys():
         print(key)
         loggers[key].print_statistics()

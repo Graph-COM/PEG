@@ -259,9 +259,67 @@ def build_adj_from_edgeind(node_num, edge_index):
     for i in range(len(edge_index[0])):
         adj[edge_index[0][i]][edge_index[1][i]] = 1
     return adj
+def create_dataloader_train(association, ratio = 0.1, seed = 0):
+    association = association - np.diag(np.ones(len(association[0])))
+    adj_triu = np.triu(association)
+    none_zero_position=np.where(adj_triu==1)
+    none_zero_row_index=none_zero_position[0]
+    none_zero_col_index=none_zero_position[1]
+
+    asso_index=[]
+    for i in range(0,len(none_zero_row_index)):
+        asso_index.append(i)
+
+    train_index = asso_index
+
+    train_matrix=np.copy(association)
+
+    np.random.seed(seed)
+    
+    neg_sampling_mat = np.copy(association)
+    row,column = neg_sampling_mat.shape
+    for i in range(row):
+        for j in range(column):
+            if i>=j:
+                neg_sampling_mat[i,j] = 1
+    
+    
+    zero_position = np.where(neg_sampling_mat == 0)
+    negative_randomlist = [i for i in range(len(zero_position[0]))]
+    random.shuffle(negative_randomlist)
+    selected_negative = []
+    for i in range(len(asso_index)):
+        selected_negative.append(negative_randomlist[i])
+
+    train_negative_index = selected_negative[:len(train_index)]
+
+    id_train = []
+    train_label=[]
+    train_edge_index = []
+    id_train_positive = []
+    id_train_negative = []
+    
+    for i in range(len(train_index)):
+        id_train_positive.append([none_zero_row_index[train_index][i], none_zero_col_index[train_index][i]])
+        id_train.append([none_zero_row_index[train_index][i], none_zero_col_index[train_index][i]])
+        train_edge_index.append([none_zero_row_index[train_index][i], none_zero_col_index[train_index][i]])
+        train_edge_index.append([none_zero_col_index[train_index][i], none_zero_row_index[train_index][i]])
+        train_label.append(1)
+
+        
+        
+    for i in train_negative_index:
+        id_train_negative.append([zero_position[0][i],zero_position[1][i]])
+        id_train.append([zero_position[0][i],zero_position[1][i]])
+        train_label.append(0)
 
 
-def create_dataloader_train_val(association, ratio = 0.1, seed = 0):
+
+
+    train_dataset = lkpDataset(root='data', dataset='data/' + '_train',id_map=id_train, label = train_label)
+    return train_dataset, train_matrix, train_edge_index, id_train_positive, id_train_negative
+
+def create_dataloader_val_test(association, ratio = 0.1, seed = 0):
     association = association - np.diag(np.ones(len(association[0])))
     adj_triu = np.triu(association)
     none_zero_position=np.where(adj_triu==1)
@@ -360,8 +418,6 @@ print(test_node_labels.shape, test_node_labels.dtype)
 print(test_edge_index.shape, test_edge_index.dtype)
 # Data settings
 parser = argparse.ArgumentParser(description='PEG')
-#parser.add_argument('--source_dataset', type=str, default='cora')
-#parser.add_argument('--target_dataset', type=str, default='citeseer')
 parser.add_argument('--PE_method', type=str, default="DW")
 parser.add_argument('--feature_type', type=str, default="N")
 # GNN settings
@@ -373,8 +429,7 @@ parser.add_argument('--batch_size', type=int, default=128)
 # Training settings
 parser.add_argument('--lr', type=float, default=0.01)
 parser.add_argument('--epochs', type=int, default=100)
-#parser.add_argument('--runs', type=int, default=1)
-#parser.add_argument('--random_partition', action='store_true')
+parser.add_argument('--random_partition', action='store_true')
 
 args = parser.parse_args()
 
@@ -384,18 +439,18 @@ ap = []
 for i in [115,105,100]:
 
     adj_train = build_adj_from_edgeind(len(train_node_labels), train_edge_index)
-    train_dataset, train_matrix, train_edge_index = create_dataloader_train_val(adj_train, 
+    train_dataset, train_matrix, train_edge_index, id_train_positive, id_train_negative = create_dataloader_train(adj_train, 
                                                                                     ratio = 0.1, 
                                                                                     seed = i)
     print("train data done!")
     #print("There are" + str(len(train_edge_index)) + "in training dataset")
     adj_val = build_adj_from_edgeind(len(val_node_labels), val_edge_index)
-    val_dataset, val_matrix, val_edge_index = create_dataloader_train_val(adj_val, ratio = 0.1, seed = i)
+    val_dataset, val_matrix, val_edge_index = create_dataloader_val_test(adj_val, ratio = 0.1, seed = i)
     
     print("validation data done!")
     
     adj_test = build_adj_from_edgeind(len(test_node_labels), test_edge_index)
-    test_dataset, test_matrix, test_edge_index = create_dataloader_train_val(adj_test, ratio = 0.1, seed = i)
+    test_dataset, test_matrix, test_edge_index = create_dataloader_val_test(adj_test, ratio = 0.1, seed = i)
     
     print("test data done!")
 
@@ -511,10 +566,17 @@ for i in [115,105,100]:
     #optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, weight_decay=5e-4)
     
     model = model.to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4)
-    results = train_model_ppi(model, optimizer, x_train, train_edge_index, x_val, val_edge_index,
-                          x_test, test_edge_index,
-                          train_loader, val_loader, test_loader, device = device)
+    if args.random_partition:
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
+        results = train_model_plus_ppi(model, optimizer, x_train, x_val, x_test, edge_index, val_edge_index, test_edge_index,
+                     id_train_positive, id_train_negative,
+                     train_matrix, features_train, features_val, features_test,
+                val_loader, test_loader, PE_dim, PE_method, device)
+    else:
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
+        results = train_model_ppi(model, optimizer, x_train, train_edge_index, x_val, val_edge_index,
+                              x_test, test_edge_index,
+                              train_loader, val_loader, test_loader, device = device)
     auc.append(results[0])
     ap.append(results[1])
     sum_metric += results

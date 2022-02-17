@@ -56,10 +56,10 @@ class SAGE(torch.nn.Module):
         super(SAGE, self).__init__()
 
         self.convs = torch.nn.ModuleList()
-        self.convs.append(SAGEConv(in_channels, hidden_channels))
+        self.convs.append(PESAGEconv(in_channels, hidden_channels))
         for _ in range(num_layers - 2):
-            self.convs.append(SAGEConv(hidden_channels, hidden_channels))
-        self.convs.append(SAGEConv(hidden_channels, out_channels))
+            self.convs.append(PESAGEconv(hidden_channels, hidden_channels))
+        self.output = PESAGEconv(hidden_channels, out_channels)
 
         self.dropout = dropout
 
@@ -67,14 +67,15 @@ class SAGE(torch.nn.Module):
         for conv in self.convs:
             conv.reset_parameters()
 
-    def forward(self, x, adj_t):
-        for conv in self.convs[:-1]:
-            x = conv(x, adj_t)
+    def forward(self, x, adj_t, embeddings):
+        for conv in self.convs:
+            #x = conv(x, adj_t, embeddings)
+            x = conv(x, adj_t, embeddings)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
-        x = self.convs[-1](x, adj_t)
+        #x = self.output(x, adj_t, embeddings)
+        x = self.output(x, adj_t, embeddings)
         return x
-
 
 class LinkPredictor(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_layers,
@@ -106,7 +107,7 @@ class LinkPredictor(torch.nn.Module):
             x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.lins[-1](x)
         out = self.output(torch.cat([x, pos_encode], 1))
-        
+        #out = x
         #out = self.up(pos_encode)
         #out = self.down(out)
         return torch.sigmoid(out)
@@ -128,6 +129,7 @@ def train(model, predictor, x, embeddings, adj_t, split_edge, optimizer, batch_s
         optimizer.zero_grad()
 
         h = model(x, edge_index, embeddings)
+        #h = model(x, edge_index)
 
         edge = pos_train_edge[perm].t()
 
@@ -165,6 +167,7 @@ def test(model, predictor, x, embeddings, adj_t, split_edge, evaluator, batch_si
     edge_index = torch.stack([col, row], dim=0)
 
     h = model(x, edge_index, embeddings)
+    #h = model(x, edge_index)
 
     pos_train_edge = split_edge['eval_train']['edge'].to(x.device)
     pos_valid_edge = split_edge['valid']['edge'].to(x.device)
@@ -326,17 +329,17 @@ def main():
         predictor.reset_parameters()
         optimizer = torch.optim.Adam(list(model.parameters()) + list(emb.parameters()) + list(predictor.parameters()), lr=args.lr)
         #optimizer = torch.optim.SGD(list(model.parameters()) + list(emb.parameters()) + list(predictor.parameters()), lr=args.lr, momentum=0.9, weight_decay=5e-4)
-        #start_time = datetime.now()
+        start_time = datetime.now()
         for epoch in range(1, 1 + args.epochs):
             loss = train(model, predictor, emb.weight, embeddings, adj_t, split_edge,
                          optimizer, args.batch_size)
 
             if epoch % args.eval_steps == 0:
-                #test_start_time = datetime.now()
+                test_start_time = datetime.now()
                 results = test(model, predictor, emb.weight, embeddings, adj_t, split_edge,
                                evaluator, args.batch_size)
-                #test_end_time = datetime.now()
-                #print('testDuration: {}'.format(test_end_time - test_start_time))
+                test_end_time = datetime.now()
+                print('testDuration: {}'.format(test_end_time - test_start_time))
                 for key, result in results.items():
                     loggers[key].add_result(run, result)
 
@@ -355,8 +358,8 @@ def main():
         for key in loggers.keys():
             print(key)
             loggers[key].print_statistics(run)
-        #end_time = datetime.now()
-        #print('Duration: {}'.format(end_time - start_time))
+        end_time = datetime.now()
+        print('Duration: {}'.format(end_time - start_time))
     for key in loggers.keys():
         print(key)
         loggers[key].print_statistics()
