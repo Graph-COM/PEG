@@ -30,7 +30,7 @@ class GraphVisualizationTool(enum.Enum):
 
 
 # We'll be dumping and reading the data from this directory
-DATA_DIR_PATH = os.path.join(os.getcwd(), 'PPI_data')
+DATA_DIR_PATH = os.path.join('../data/', 'PPI_data')
 PPI_PATH = os.path.join(DATA_DIR_PATH, 'ppi')
 PPI_URL = 'https://data.dgl.ai/dataset/ppi.zip'  # preprocessed PPI data from Deep Graph Library
 

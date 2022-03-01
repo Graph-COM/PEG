@@ -5,6 +5,7 @@ from torch_geometric import data as DATA
 import torch
 import numpy as np
 import random
+sys.path.append("..")
 from utils import *
 
 def create_dataloader_source(association, val_ratio = 0.1, seed = 0):

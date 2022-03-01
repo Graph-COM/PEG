@@ -4,7 +4,8 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score, average_precision_score, f1_score
-from ge import DeepWalk
+sys.path.append("..")
+from Graph_embedding import DeepWalk
 import random
 from utils import *
 import dgl
@@ -32,7 +33,7 @@ def test(model, loader, x, edge_index, device):
             y_pred = y_pred + output.flatten().tolist()
             outputs = np.asarray([1 if i else 0 for i in (np.asarray(y_pred) >= 0.5)])
 
-    return roc_auc_score(y_label, y_pred), average_precision_score(y_label, y_pred), f1_score(y_label, outputs), loss, outputs
+    return roc_auc_score(y_label, y_pred), average_precision_score(y_label, y_pred), f1_score(y_label, outputs)
 
 
 def train_model(model, optimizer, x, edge_index, x_target, edge_index_target,
@@ -81,7 +82,7 @@ def train_model(model, optimizer, x, edge_index, x_target, edge_index_target,
         roc_train = roc_auc_score(y_label_train, y_pred_train)
 
         # validation after each epoch
-        roc_val, prc_val, f1_val, loss_val,outputs_val = test(model, val_loader,  x, edge_index, device = device)
+        roc_val, prc_val, f1_val = test(model, val_loader,  x, edge_index, device = device)
         if roc_val > max_auc:
             model_max = copy.deepcopy(model)
             max_auc = roc_val
@@ -104,7 +105,7 @@ def train_model(model, optimizer, x, edge_index, x_target, edge_index_target,
     print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
     # Testing
-    auroc_test, prc_test, f1_test, loss_test,outputs = test(model_max, test_loader, x_target, edge_index_target, device=device)
+    auroc_test, prc_test, f1_test = test(model_max, test_loader, x_target, edge_index_target, device=device)
     print('loss_test: {:.4f}'.format(loss_test.item()), 'auc_test: {:.4f}'.format(auroc_test),
           'ap_test: {:.4f}'.format(prc_test), 'f1_test: {:.4f}'.format(f1_test))
     print(outputs)
@@ -112,7 +113,7 @@ def train_model(model, optimizer, x, edge_index, x_target, edge_index_target,
 
 def train_model_plus(model, optimizer, x, edge_index, x_target, edge_index_target, 
                 id_train_positive, id_train_negative,train_matrix, features, 
-                val_loader, test_loader, PE_dim, PE_method, device):
+                val_loader, test_loader, PE_dim, PE_method, training_batch_size, device):
     m = torch.nn.Sigmoid()
     loss_fct = torch.nn.BCELoss()
     loss_history = []
@@ -216,7 +217,7 @@ def train_model_plus(model, optimizer, x, edge_index, x_target, edge_index_targe
                 id_label.append(0)
             id_train = id_train_pos + id_train_nega
             train_dataset = lkpDataset(root='data', dataset='data/' + '_train',id_map=id_train, label = id_label)
-            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=128, shuffle=True)
+            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=training_batch_size, shuffle=True)
     
             for i, (label, inp) in enumerate(train_loader):
                 label = label.cuda(device)
@@ -248,7 +249,7 @@ def train_model_plus(model, optimizer, x, edge_index, x_target, edge_index_targe
             roc_train = roc_auc_score(y_label_train, y_pred_train)
 
             # validation after each epoch
-            roc_val, prc_val, f1_val, loss_val,outputs_val = test(model, val_loader,  x, edge_index, device = device)
+            roc_val, prc_val, f1_val = test(model, val_loader,  x, edge_index, device = device)
             val_auc[small_epoch] = roc_val
             model_list[small_epoch] = copy.deepcopy(model)
             auc_val_average += roc_val
@@ -287,10 +288,10 @@ def train_model_plus(model, optimizer, x, edge_index, x_target, edge_index_targe
     print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
     # Testing
-    auroc_test, prc_test, f1_test, loss_test, outputs = test(model_max, test_loader,  x_target, edge_index_target, device = device)
+    auroc_test, prc_test, f1_test = test(model_max, test_loader,  x_target, edge_index_target, device = device)
     print('loss_test: {:.4f}'.format(loss_test.item()), 'auc_test: {:.4f}'.format(auroc_test),
           'ap_test: {:.4f}'.format(prc_test), 'f1_test: {:.4f}'.format(f1_test))
-    return np.array([auroc_test, prc_test]),loss_history,loss_val_history
+    return np.array([auroc_test, prc_test])
 
 def train_model_ppi(model, optimizer, x_train, train_edge_index, x_val, val_edge_index,
                           x_test, test_edge_index,
@@ -337,7 +338,7 @@ def train_model_ppi(model, optimizer, x_train, train_edge_index, x_val, val_edge
         roc_train = roc_auc_score(y_label_train, y_pred_train)
 
         # validation after each epoch
-        roc_val, prc_val, f1_val, loss_val,outputs_val = test(model, val_loader,  x_val, val_edge_index, device = device)
+        roc_val, prc_val, f1_val = test(model, val_loader,  x_val, val_edge_index, device = device)
         if roc_val > max_auc:
             model_max = copy.deepcopy(model)
             max_auc = roc_val
@@ -360,7 +361,7 @@ def train_model_ppi(model, optimizer, x_train, train_edge_index, x_val, val_edge
     print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
     # Testing
-    auroc_test, prc_test, f1_test, loss_test,outputs = test(model_max, test_loader, x_test, test_edge_index, device = device)
+    auroc_test, prc_test, f1_test = test(model_max, test_loader, x_test, test_edge_index, device = device)
     print('loss_test: {:.4f}'.format(loss_test.item()), 'auc_test: {:.4f}'.format(auroc_test),
           'ap_test: {:.4f}'.format(prc_test), 'f1_test: {:.4f}'.format(f1_test))
     print(outputs)
@@ -500,7 +501,7 @@ def train_model_plus_ppi(model, optimizer, x, val_x, test_x, edge_index, val_edg
             roc_train = roc_auc_score(y_label_train, y_pred_train)
 
             # validation after each epoch
-            roc_val, prc_val, f1_val, loss_val,outputs_val = test(model, val_loader,  val_x, val_edge_index, device)
+            roc_val, prc_val, f1_val = test(model, val_loader,  val_x, val_edge_index, device)
             val_auc[small_epoch] = roc_val
             model_list[small_epoch] = copy.deepcopy(model)
             auc_val_average += roc_val
@@ -539,7 +540,7 @@ def train_model_plus_ppi(model, optimizer, x, val_x, test_x, edge_index, val_edg
     print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
     # Testing
-    auroc_test, prc_test, f1_test, loss_test,outputs = test(model_max, test_loader,  test_x, test_edge_index, device = device)
+    auroc_test, prc_test, f1_test = test(model_max, test_loader,  test_x, test_edge_index, device = device)
     print('loss_test: {:.4f}'.format(loss_test.item()), 'auc_test: {:.4f}'.format(auroc_test),
           'ap_test: {:.4f}'.format(prc_test), 'f1_test: {:.4f}'.format(f1_test))
     return np.array([auroc_test, prc_test])

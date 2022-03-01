@@ -1,14 +1,15 @@
 import argparse
 import dgl
-from utils import *
+
 from dataset import *
-from model import *
+
 from train import *
-from ge import DeepWalk
 from sklearn.preprocessing import normalize
 from sklearn.decomposition import PCA
-
-
+sys.path.append("..")
+from Graph_embedding import DeepWalk
+from model import *
+from utils import *
 
 def load_data(dataset_name):
     if dataset_name in ['cora', 'citeseer', 'pubmed']:
@@ -24,48 +25,53 @@ def load_data(dataset_name):
 
 # Data settings
 parser = argparse.ArgumentParser(description='PEG')
-parser.add_argument('--dataset', type=str, default='cora')
-parser.add_argument('--PE_method', type=str, default="DW")
-parser.add_argument('--feature_type', type=str, default="N")
+parser.add_argument('--dataset', type=str, default='cora', help = 'dataset name', 
+                    choices = ['cora', 'citeseer', 'pubmed', 'PTBR', 'RU', 'ENGB', 'ES', 'chameleon'])
+parser.add_argument('--PE_method', type=str, default="DW", help = 'positional encoding techniques',
+                    chocies = ['DW', 'LE'])
+parser.add_argument('--feature_type', type=str, default="N", help = 'features type, N means node feature, C means constant feature (node degree)',
+                    choices = ['N', 'C'])
 # GNN settings
-parser.add_argument('--num_layers', type=int, default=2)
-parser.add_argument('--PE_dim', type=int, default=128)
-parser.add_argument('--hidden_dim', type=int, default=128)
+parser.add_argument('--num_layers', type=int, default=2, help = 'number of layers')
+parser.add_argument('--PE_dim', type=int, default=128, help = 'dimension of positional encoding')
+parser.add_argument('--hidden_dim', type=int, default=128, help = 'hidden dimension')
 
-parser.add_argument('--batch_size', type=int, default=128)
+parser.add_argument('--batch_size', type=int, default=128, help = 'batch size')
 # Training settings
-parser.add_argument('--lr', type=float, default=0.01)
-parser.add_argument('--epochs', type=int, default=100)
+parser.add_argument('--lr', type=float, default=0.01, help = 'learning rate')
+parser.add_argument('--weight_decay', type=float, default= 5e-4, help = 'weight decay')
+parser.add_argument('--epochs', type=int, default=100, help = 'number of epochs to train')
+parser.add_argument('--val_ratio', type=float, default=0.05, help = 'validation ratio')
+parser.add_argument('--test_ratio', type=float, default=0.1, help = 'testing ratio')
 #parser.add_argument('--runs', type=int, default=1)
-parser.add_argument('--random_partition', action='store_true')
+parser.add_argument('--random_partition', action='store_true', help = 'whether to use random partition while training')
 
 args = parser.parse_args()
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+seed_list = [115, 105, 100]
 sum_metric = np.zeros((1, 2))
 auc = []
 ap = []
-for i in [115,105,100]:
-    task = "Task 1 normal model"
-    dataset = "cora"
-    feature_type = "node_feature"
-
+for i in seed_list:
+    dataset = args.dataset
+    feature_type = args.feature_type
+    set_random_seed(i)
     adj, features= load_data(args.dataset)
 
     if args.random_partition:
-        val_dataset, test_dataset, train_matrix, train_edge_index, id_train_positive, id_train_negative = create_dataloader_plus(adj, val_ratio = 0.05, test_ratio = 0.1, seed = i)                                                                                                          
-        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=128, shuffle=True)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=128, shuffle=True)
+        val_dataset, test_dataset, train_matrix, train_edge_index, id_train_positive, id_train_negative = create_dataloader_plus(adj, val_ratio = args.val_ratio, test_ratio = args.test_ratio, seed = i)                                                                                                          
+        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size= args.batch_size, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size= args.batch_size, shuffle=True)
 
     else:
 
         train_dataset, val_dataset, test_dataset, train_matrix, train_edge_index = create_dataloader(adj, 
-                                                                                                 val_ratio = 0.05, 
-                                                                                                 test_ratio = 0.1, 
+                                                                                                 val_ratio = args.val_ratio, 
+                                                                                                 test_ratio = args.test_ratio, 
                                                                                                  seed = i)
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=128, shuffle=True)
-        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=128, shuffle=True)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=128, shuffle=True)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size= args.batch_size, shuffle=True)
+        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size= args.batch_size, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size= args.batch_size, shuffle=True)
 
     if args.feature_type == 'N':
         pca=PCA(n_components=128)
@@ -78,6 +84,7 @@ for i in [115,105,100]:
         degree = degree.reshape(1,len(nparray_adj[0]))
         degree = degree.T
         constant_feature = np.matrix(degree)
+        constant_feature = normalize(constant_feature, norm='l2', axis=0, copy=True, return_norm=False)
         features = torch.Tensor(constant_feature)
     
 
@@ -85,7 +92,7 @@ for i in [115,105,100]:
         #deepwalk
         G = nx.DiGraph(train_matrix)
         model_emb = DeepWalk(G,walk_length=80, num_walks=10,workers=1)#init model
-        model_emb.train(window_size=5,iter=3, embed_size = args.PE_dim)# train model
+        model_emb.train(embed_size = args.PE_dim)# train model
         emb = model_emb.get_embeddings()# get embedding vectors
         embeddings = []
         for i in range(len(emb)):
@@ -106,25 +113,23 @@ for i in [115,105,100]:
     x = x.cuda(device)
     edge_index = edge_index.cuda(device)
     
-    model = Net(feats_dim = len(features[1]), pos_dim = args.PE_dim, m_dim = len(features[1]),
+    model = Net(feats_dim = len(features[1]), pos_dim = args.PE_dim,
                use_former_information = False, update_coors = False)
     
-    #optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay = 5e-4)
-    #optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, weight_decay=5e-4)
     
     model = model.to(device)
     if args.random_partition:
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4)
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
         #optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay = 5e-4)
-        results,loss_history,loss_val = train_model_plus(model, optimizer, x, edge_index,id_train_positive, id_train_negative,train_matrix, features, 
-                    test_loader, val_loader, PE_dim = args.PE_dim, PE_method = args.PE_method, device = device)
+        results = train_model_plus(model, optimizer, x, edge_index,id_train_positive, id_train_negative,train_matrix, features, 
+                    test_loader, val_loader, PE_dim = args.PE_dim, PE_method = args.PE_method, training_batch_size = args.batch_size device = device)
     else:
-        optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, weight_decay=5e-4)
-        results, train_loss_history, val_loss_hiatory, train_auc, val_auc = train_model(model, 
-                                                                                    optimizer, 
-                                                                                    x, edge_index, 
-                                                                                    train_loader, val_loader, test_loader, device = device)
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
+        results = train_model(model, optimizer, x, edge_index, train_loader, val_loader, test_loader, device = device)
+
     auc.append(results[0])
     ap.append(results[1])
     sum_metric += results
+    print('auc_test: {:.4f}'.format(sum_metric[0]/len(seed_list)),
+          'ap_test: {:.4f}'.format(sum_metric[1]/len(seed_list)))
     print("Total number of paramerters in networks is {}  ".format(sum(x.numel() for x in model.parameters())))
