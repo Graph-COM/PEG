@@ -8,7 +8,6 @@ class Net(torch.nn.Module):
         
         self.feats_dim = feats_dim
         self.pos_dim = pos_dim
-        self.m_dim = m_dim
         self.use_former_information = use_former_information
         self.update_coors = update_coors
         
@@ -34,7 +33,7 @@ class Net(torch.nn.Module):
         positional_encoding = ((pos_first - pos_second)**2).sum(dim=-1, keepdim=True)
 
         pred = torch.sum(nodes_first * nodes_second, dim=-1)
-        out = self.fc(torch.cat([pred.reshape(len(pred), dim = 1),positional_encoding.reshape(len(positional_encoding), dim = 1)], dim = 1))
+        out = self.fc(torch.cat([pred.reshape(len(pred), 1),positional_encoding.reshape(len(positional_encoding), 1)], 1))
 
         return out
 
@@ -172,8 +171,8 @@ class PEG_layer(MessagePassing):
         self.edge_mlp1 = nn.Linear(1, 32)
         self.edge_mlp2 = nn.Linear(32, 1)
         #self.edge_mlp = nn.Linear(feats_dim + 1, feats_dim)
-        self.weight_withformer = Parameter(torch.Tensor(feats_dim + m_dim, feats_dim))
-        self.weight_noformer = Parameter(torch.Tensor(m_dim, feats_dim))
+        self.weight_withformer = Parameter(torch.Tensor(feats_dim + feats_dim, feats_dim))
+        self.weight_noformer = Parameter(torch.Tensor(feats_dim, feats_dim))
         self.coors_mlp = nn.Sequential(
             nn.Linear(pos_dim, pos_dim * 4),
             nn.Linear(pos_dim * 4, 1)
