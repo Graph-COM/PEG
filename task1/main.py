@@ -1,6 +1,6 @@
 import argparse
 import dgl
-
+import sys
 from dataset import *
 
 from train import *
@@ -25,10 +25,11 @@ def load_data(dataset_name):
 
 # Data settings
 parser = argparse.ArgumentParser(description='PEG')
+parser.add_argument('--device', type=int, default=3)
 parser.add_argument('--dataset', type=str, default='cora', help = 'dataset name', 
                     choices = ['cora', 'citeseer', 'pubmed', 'PTBR', 'RU', 'ENGB', 'ES', 'chameleon'])
 parser.add_argument('--PE_method', type=str, default="DW", help = 'positional encoding techniques',
-                    chocies = ['DW', 'LE'])
+                    choices = ['DW', 'LE'])
 parser.add_argument('--feature_type', type=str, default="N", help = 'features type, N means node feature, C means constant feature (node degree)',
                     choices = ['N', 'C'])
 # GNN settings
@@ -47,7 +48,8 @@ parser.add_argument('--test_ratio', type=float, default=0.1, help = 'testing rat
 parser.add_argument('--random_partition', action='store_true', help = 'whether to use random partition while training')
 
 args = parser.parse_args()
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu'
+device = torch.device(device)
 seed_list = [115, 105, 100]
 sum_metric = np.zeros((1, 2))
 auc = []
@@ -122,7 +124,7 @@ for i in seed_list:
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
         #optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay = 5e-4)
         results = train_model_plus(model, optimizer, x, edge_index,id_train_positive, id_train_negative,train_matrix, features, 
-                    test_loader, val_loader, PE_dim = args.PE_dim, PE_method = args.PE_method, training_batch_size = args.batch_size device = device)
+                    test_loader, val_loader, PE_dim = args.PE_dim, PE_method = args.PE_method, training_batch_size = args.batch_size, device = device)
     else:
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
         results = train_model(model, optimizer, x, edge_index, train_loader, val_loader, test_loader, device = device)
@@ -130,6 +132,6 @@ for i in seed_list:
     auc.append(results[0])
     ap.append(results[1])
     sum_metric += results
-    print('auc_test: {:.4f}'.format(sum_metric[0]/len(seed_list)),
-          'ap_test: {:.4f}'.format(sum_metric[1]/len(seed_list)))
-    print("Total number of paramerters in networks is {}  ".format(sum(x.numel() for x in model.parameters())))
+print('auc_test: {:.4f}'.format((sum_metric/len(seed_list))[0][0]),
+      'ap_test: {:.4f}'.format((sum_metric/len(seed_list))[0][1]))
+print("Total number of paramerters in networks is {}  ".format(sum(x.numel() for x in model.parameters())))

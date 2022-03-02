@@ -14,13 +14,13 @@ from logger import Logger
 from PEGlayer import *
 import scipy.sparse as sp
 import tensorflow
-from datetime import datetime
 import dgl
 import networkx as nx
 import random
 import math
 from sklearn.preprocessing import normalize
-sys.path.append("..")
+import sys
+sys.path.append("../..")
 from Graph_embedding import DeepWalk
 
 
@@ -256,7 +256,7 @@ def main():
     parser.add_argument('--dropout', type=float, default=0.5)
     parser.add_argument('--batch_size', type=int, default=64 * 512)
     parser.add_argument('--lr', type=float, default=0.002)
-    parser.add_argument('--epochs', type=int, default=200)
+    parser.add_argument('--epochs', type=int, default=400)
     parser.add_argument('--eval_steps', type=int, default=5)
     parser.add_argument('--runs', type=int, default=10)
     args = parser.parse_args()
@@ -336,7 +336,6 @@ def main():
             if epoch % args.eval_steps == 0:
                 results = test(model, predictor, emb.weight, embeddings, adj_t, split_edge,
                                evaluator, args.batch_size)
-                print('testDuration: {}'.format(test_end_time - test_start_time))
                 for key, result in results.items():
                     loggers[key].add_result(run, result)
 

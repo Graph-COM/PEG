@@ -14,9 +14,8 @@ from logger import Logger
 from PEGlayer import *
 import scipy.sparse as sp
 import tensorflow
-sys.path.append("..")
+sys.path.append("../..")
 from Graph_embedding import DeepWalk
-from datetime import datetime
 from torch_geometric.data import Data
 import random
 from torch_geometric.utils import (negative_sampling, add_self_loops,
@@ -404,16 +403,12 @@ def main():
         optimizer = torch.optim.Adam(
             list(model.parameters()) + list(predictor.parameters()),
             lr=args.lr)
-        start_time = datetime.now()
         for epoch in range(1, 1 + args.epochs):
             random.shuffle(small_epoch_list)
             for j in range(10):
 
                 loss = train(model, predictor, x, pipe_train_embeddings_list[small_epoch_list[j]], pipe_train_adj_t_list[small_epoch_list[j]], pipe_train_edge_list[small_epoch_list[j]],
                             optimizer, args.batch_size)
-
-            #loss = train(model, predictor, data, embeddings, split_edge, optimizer,
-            #            args.batch_size)
 
             if epoch % args.eval_steps == 0:
                 results = test(model, predictor, x, embeddings, adj_t, test_adj, split_edge, evaluator,
@@ -432,8 +427,6 @@ def main():
                               f'Valid: {100 * valid_hits:.2f}%, '
                               f'Test: {100 * test_hits:.2f}%')
                     print('---')
-        end_time = datetime.now()
-        print('Duration: {}'.format(end_time - start_time))
         for key in loggers.keys():
             print(key)
             loggers[key].print_statistics(run)

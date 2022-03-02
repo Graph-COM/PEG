@@ -5,11 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score, average_precision_score, f1_score
 import random
-from utils import *
+import sys
 import dgl
 from dataset import *
 sys.path.append("..")
 from Graph_embedding import DeepWalk
+from utils import *
 
 def test(model, loader, x, edge_index, device):
     m = torch.nn.Sigmoid()
@@ -32,7 +33,7 @@ def test(model, loader, x, edge_index, device):
             y_pred = y_pred + output.flatten().tolist()
             outputs = np.asarray([1 if i else 0 for i in (np.asarray(y_pred) >= 0.5)])
 
-    return roc_auc_score(y_label, y_pred), average_precision_score(y_label, y_pred), f1_score(y_label, outputs)
+    return roc_auc_score(y_label, y_pred), average_precision_score(y_label, y_pred), f1_score(y_label, outputs), loss
 
 
 def train_model(model, optimizer, x, edge_index, train_loader, val_loader, test_loader, device):
@@ -83,7 +84,7 @@ def train_model(model, optimizer, x, edge_index, train_loader, val_loader, test_
         roc_train = roc_auc_score(y_label_train, y_pred_train)
 
         # validation after each epoch
-        roc_val, prc_val, f1_val = test(model, val_loader,  x, edge_index, device = device)
+        roc_val, prc_val, f1_val, loss_val = test(model, val_loader,  x, edge_index, device = device)
         
         val_loss_history.append(loss_train)
         val_auc.append(roc_val)
@@ -111,7 +112,7 @@ def train_model(model, optimizer, x, edge_index, train_loader, val_loader, test_
     print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
     # Testing
-    auroc_test, prc_test, f1_test = test(model_max, test_loader,  x, edge_index, device = device)
+    auroc_test, prc_test, f1_test, loss_test = test(model_max, test_loader,  x, edge_index, device = device)
     print('loss_test: {:.4f}'.format(loss_test.item()), 'auc_test: {:.4f}'.format(auroc_test),
           'ap_test: {:.4f}'.format(prc_test), 'f1_test: {:.4f}'.format(f1_test))
     return np.array([auroc_test, prc_test])
@@ -249,7 +250,7 @@ def train_model_plus(model, optimizer, x, edge_index, id_train_positive, id_trai
             roc_train = roc_auc_score(y_label_train, y_pred_train)
 
             # validation after each epoch
-            roc_val, prc_val, f1_val = test(model, val_loader,  x, edge_index, device)
+            roc_val, prc_val, f1_val, loss_val = test(model, val_loader,  x, edge_index, device)
             val_auc[small_epoch] = roc_val
             model_list[small_epoch] = copy.deepcopy(model)
             auc_val_average += roc_val
@@ -288,7 +289,7 @@ def train_model_plus(model, optimizer, x, edge_index, id_train_positive, id_trai
     print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
     # Testing
-    auroc_test, prc_test, f1_test = test(model_max, test_loader,  x, edge_index, device = device)
+    auroc_test, prc_test, f1_test, loss_test = test(model_max, test_loader,  x, edge_index, device = device)
     print('loss_test: {:.4f}'.format(loss_test.item()), 'auc_test: {:.4f}'.format(auroc_test),
           'ap_test: {:.4f}'.format(prc_test), 'f1_test: {:.4f}'.format(f1_test))
     return np.array([auroc_test, prc_test])

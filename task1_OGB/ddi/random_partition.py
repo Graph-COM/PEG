@@ -15,7 +15,6 @@ from logger import Logger
 from PEGlayer import *
 import scipy.sparse as sp
 import tensorflow
-from datetime import datetime
 from torch_geometric.data import Data
 import random
 from torch_geometric.utils import (negative_sampling, add_self_loops,
@@ -26,7 +25,8 @@ import networkx as nx
 import random
 import math
 from sklearn.preprocessing import normalize
-sys.path.append("..")
+import sys
+sys.path.append("../..")
 from Graph_embedding import DeepWalk
 
 
@@ -51,8 +51,8 @@ class PEG(torch.nn.Module):
     def forward(self, x, adj_t, embeddings):
         for conv in self.convs[:-1]:
             x = conv(x, adj_t, embeddings)
-            #x = F.relu(x)
-            #x = F.dropout(x, p=self.dropout, training=self.training)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.convs[-1](x, adj_t, embeddings)
         return x
 
@@ -264,7 +264,7 @@ def main():
     parser.add_argument('--dropout', type=float, default=0.5)
     parser.add_argument('--batch_size', type=int, default=64 * 512)
     parser.add_argument('--lr', type=float, default=0.002)
-    parser.add_argument('--epochs', type=int, default=200)
+    parser.add_argument('--epochs', type=int, default=400)
     parser.add_argument('--eval_steps', type=int, default=5)
     parser.add_argument('--runs', type=int, default=10)
     args = parser.parse_args()
