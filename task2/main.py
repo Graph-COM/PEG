@@ -51,12 +51,12 @@ parser.add_argument('--random_partition', action='store_true', help = 'whether t
 
 args = parser.parse_args()
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+seed_list = [115, 105, 100]
 sum_metric = np.zeros((1, 2))
 auc = []
 ap = []
-for i in [115,105,100]:
-
+for i in seed_list:
+    set_random_seed(i)
     adj, features_source= load_data(args.source_dataset)
     adj_target, features_target = load_data(args.target_dataset)
 
@@ -169,7 +169,7 @@ for i in [115,105,100]:
         #optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay = 5e-4)
         results = train_model_plus(model, optimizer, x, edge_index, x_target, edge_index_target, 
                                                 id_train_positive, id_train_negative,train_matrix, features_source, 
-                                                val_loader, test_loader, PE_dim = args.PE_dim, PE_method = args.PE_method, training_batech_size = args.batch_size, device = device)
+                                                val_loader, test_loader, PE_dim = args.PE_dim, PE_method = args.PE_method, training_batch_size = args.batch_size, device = device)
     else:
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
         results = train_model(model, optimizer, x, edge_index, x_target, edge_index_target, train_loader, val_loader, test_loader, device = device)

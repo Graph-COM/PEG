@@ -51,8 +51,8 @@ class PEG(torch.nn.Module):
     def forward(self, x, adj_t, embeddings):
         for conv in self.convs[:-1]:
             x = conv(x, adj_t, embeddings)
-            x = F.relu(x)
-            x = F.dropout(x, p=self.dropout, training=self.training)
+            #x = F.relu(x)
+            #x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.convs[-1](x, adj_t, embeddings)
         return x
 
@@ -218,7 +218,7 @@ def do_pipeline(all_edge, train_edge, PE_method, PE_dim):
         G = nx.to_scipy_sparse_matrix(G)
         g = dgl.from_scipy(G)
         embeddings = laplacian_positional_encoding(g, PE_dim)
-        embeddings = normalize(embeddings, norm='l2', axis=1, copy=True, return_norm=False)
+        #embeddings = normalize(embeddings, norm='l2', axis=1, copy=True, return_norm=False)
         embeddings = torch.tensor(embeddings)
         embeddings = embeddings.type(torch.FloatTensor)
         
@@ -297,7 +297,7 @@ def main():
         G = nx.to_scipy_sparse_matrix(G)
         g = dgl.from_scipy(G)
         embeddings = laplacian_positional_encoding(g, args.PE_dim)
-        embeddings = normalize(embeddings, norm='l2', axis=1, copy=True, return_norm=False)
+        #embeddings = normalize(embeddings, norm='l2', axis=1, copy=True, return_norm=False)
         embeddings = torch.tensor(embeddings)
         embeddings = embeddings.type(torch.FloatTensor)
         embeddings = embeddings.to(device)

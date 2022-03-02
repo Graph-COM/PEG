@@ -474,7 +474,7 @@ for i in [115,105,100]:
         embeddings = []
         for i in range(len(emb)):
             embeddings.append(emb[i])
-        embeddings = np.array(embeddings)
+        train_embeddings = np.array(embeddings)
     
         #for val dataset
         G = nx.DiGraph(val_matrix)
