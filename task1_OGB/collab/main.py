@@ -14,6 +14,7 @@ from logger import Logger
 from PEGlayer import *
 import scipy.sparse as sp
 import tensorflow
+import sys
 sys.path.append("../..")
 from Graph_embedding import DeepWalk
 import time

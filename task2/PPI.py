@@ -1,10 +1,13 @@
 import argparse
 import dgl
-from utils import *
 from dataset import *
-from model import *
 from train import *
-from ge import DeepWalk
+
+import sys
+sys.path.append("..")
+from Graph_embedding import DeepWalk
+from model import *
+from utils import *
 from sklearn.preprocessing import normalize
 from sklearn.decomposition import PCA
 from sklearn import random_projection
@@ -29,7 +32,6 @@ class GraphVisualizationTool(enum.Enum):
     IGRAPH = 0
 
 
-# We'll be dumping and reading the data from this directory
 DATA_DIR_PATH = os.path.join('../data/', 'PPI_data')
 PPI_PATH = os.path.join(DATA_DIR_PATH, 'ppi')
 PPI_URL = 'https://data.dgl.ai/dataset/ppi.zip'  # preprocessed PPI data from Deep Graph Library
@@ -53,20 +55,19 @@ def load_graph_data(training_config, device):
 
     if dataset_name == DatasetType.PPI.name.lower():  # Protein-Protein Interaction dataset
 
-        # Instead of checking PPI in, I'd rather download it on-the-fly the first time it's needed (lazy execution ^^)
         if not os.path.exists(PPI_PATH):  # download the first time this is ran
             os.makedirs(PPI_PATH)
 
-            # Step 1: Download the ppi.zip (contains the PPI dataset)
+            #Download the ppi.zip (contains the PPI dataset)
             zip_tmp_path = os.path.join(PPI_PATH, 'ppi.zip')
             download_url_to_file(PPI_URL, zip_tmp_path)
 
-            # Step 2: Unzip it
+            #Unzip it
             with zipfile.ZipFile(zip_tmp_path) as zf:
                 zf.extractall(path=PPI_PATH)
             print(f'Unzipping to: {PPI_PATH} finished.')
 
-            # Step3: Remove the temporary resource file
+            # Remove the temporary resource file
             os.remove(zip_tmp_path)
             print(f'Removing tmp file {zip_tmp_path}.')
 
@@ -75,30 +76,21 @@ def load_graph_data(training_config, device):
         node_features_list = []
         node_labels_list = []
 
-        # Dynamically determine how many graphs we have per split (avoid using constants when possible)
         num_graphs_per_split_cumulative = [0]
 
-        # Small optimization "trick" since we only need test in the playground.py
         splits = ['test'] if training_config['ppi_load_test_only'] else ['train', 'valid', 'test']
 
         for split in splits:
-            # PPI has 50 features per node, it's a combination of positional gene sets, motif gene sets,
-            # and immunological signatures - you can treat it as a black box (I personally have a rough understanding)
             # shape = (NS, 50) - where NS is the number of (N)odes in the training/val/test (S)plit
-            # Note: node features are already preprocessed
+            # node features are already preprocessed
             node_features = np.load(os.path.join(PPI_PATH, f'{split}_feats.npy'))
 
             # PPI has 121 labels and each node can have multiple labels associated (gene ontology stuff)
             # SHAPE = (NS, 121)
             node_labels = np.load(os.path.join(PPI_PATH, f'{split}_labels.npy'))
 
-            # Graph topology stored in a special nodes-links NetworkX format
             nodes_links_dict = json_read(os.path.join(PPI_PATH, f'{split}_graph.json'))
-            # PPI contains undirected graphs with self edges - 20 train graphs, 2 validation graphs and 2 test graphs
-            # The reason I use a NetworkX's directed graph is because we need to explicitly model both directions
-            # because of the edge index and the way GAT implementation #3 works
             collection_of_graphs = nx.DiGraph(json_graph.node_link_graph(nodes_links_dict))
-            # For each node in the above collection, ids specify to which graph the node belongs to
             graph_ids = np.load(os.path.join(PPI_PATH, F'{split}_graph_id.npy'))
             num_graphs_per_split_cumulative.append(num_graphs_per_split_cumulative[-1] + len(np.unique(graph_ids)))
 
@@ -111,8 +103,6 @@ def load_graph_data(training_config, device):
                       f'It has {graph.number_of_nodes()} nodes and {graph.number_of_edges()} edges.')
 
                 # shape = (2, E) - where E is the number of edges in the graph
-                # Note: leaving the tensors on CPU I'll load them to GPU in the training loop on-the-fly as VRAM
-                # is a scarcer resource than CPU's RAM and the whole PPI dataset can't fit during the training.
                 edge_index = torch.tensor(list(graph.edges), dtype=torch.long).transpose(0, 1).contiguous()
                 edge_index = edge_index - edge_index.min()  # bring the edges to [0, num_of_nodes] range
                 edge_index_list.append(edge_index)
@@ -125,11 +115,7 @@ def load_graph_data(training_config, device):
                     plot_in_out_degree_distributions(edge_index.numpy(), graph.number_of_nodes(), dataset_name)
                     visualize_graph(edge_index.numpy(), node_labels[mask], dataset_name)
 
-        #
-        # Prepare graph data loaders
-        #
 
-        # Optimization, do a shortcut in case we only need the test data loader
         if training_config['ppi_load_test_only']:
             data_loader_test = GraphDataLoader(
                 node_features_list[num_graphs_per_split_cumulative[0]:num_graphs_per_split_cumulative[1]],
@@ -200,12 +186,6 @@ class GraphDataset(Dataset):
 
 def graph_collate_fn(batch):
     """
-    The main idea here is to take multiple graphs from PPI as defined by the batch size
-    and merge them into a single graph with multiple connected components.
-
-    It's important to adjust the node ids in edge indices such that they form a consecutive range. Otherwise
-    the scatter functions in the implementation 3 will fail.
-
     :param batch: contains a list of edge_index, node_features, node_labels tuples (as provided by the GraphDataset)
     """
 
@@ -489,7 +469,7 @@ for i in [115,105,100]:
         #for training dataset
         G = nx.DiGraph(train_matrix)
         model_emb = DeepWalk(G,walk_length=80,num_walks=10,workers=1)#init model
-        model_emb.train(window_size=5,iter=3, embed_size = args.PE_dim)# train model
+        model_emb.train(embed_size = args.PE_dim)# train model
         emb = model_emb.get_embeddings()# get embedding vectors
         embeddings = []
         for i in range(len(emb)):
@@ -499,7 +479,7 @@ for i in [115,105,100]:
         #for val dataset
         G = nx.DiGraph(val_matrix)
         model_emb = DeepWalk(G,walk_length=80,num_walks=10,workers=1)#init model
-        model_emb.train(window_size=5,iter=3, embed_size = args.PE_dim)# train model
+        model_emb.train(embed_size = args.PE_dim)# train model
         emb = model_emb.get_embeddings()# get embedding vectors
         val_embeddings = []
         for i in range(len(emb)):
@@ -509,7 +489,7 @@ for i in [115,105,100]:
         #for test dataset
         G = nx.DiGraph(test_matrix)
         model_emb = DeepWalk(G,walk_length=80,num_walks=10,workers=1)#init model
-        model_emb.train(window_size=5,iter=3, embed_size = args.PE_dim)# train model
+        model_emb.train(embed_size = args.PE_dim)# train model
         emb = model_emb.get_embeddings()# get embedding vectors
         test_embeddings = []
         for i in range(len(emb)):
@@ -520,17 +500,17 @@ for i in [115,105,100]:
         #LAP
         sp_adj = sp.coo_matrix(train_matrix)
         g = dgl.from_scipy(sp_adj)
-        embeddings = np.array(laplacian_positional_encoding(g, 128))
+        embeddings = np.array(laplacian_positional_encoding(g, args.PE_dim))
         train_embeddings = normalize(embeddings, norm='l2', axis=1, copy=True, return_norm=False)
     
         sp_adj = sp.coo_matrix(val_matrix)
         g = dgl.from_scipy(sp_adj)
-        embeddings = np.array(laplacian_positional_encoding(g, 128))
+        embeddings = np.array(laplacian_positional_encoding(g, args.PE_dim))
         val_embeddings = normalize(embeddings, norm='l2', axis=1, copy=True, return_norm=False)
     
         sp_adj = sp.coo_matrix(test_matrix)
         g = dgl.from_scipy(sp_adj)
-        embeddings = np.array(laplacian_positional_encoding(g, 128))
+        embeddings = np.array(laplacian_positional_encoding(g, args.PE_dim))
         test_embeddings = normalize(embeddings, norm='l2', axis=1, copy=True, return_norm=False)
     
         
@@ -567,13 +547,13 @@ for i in [115,105,100]:
     
     model = model.to(device)
     if args.random_partition:
-        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4)
         results = train_model_plus_ppi(model, optimizer, x_train, x_val, x_test, edge_index, val_edge_index, test_edge_index,
                      id_train_positive, id_train_negative,
                      train_matrix, features_train, features_val, features_test,
                 val_loader, test_loader, PE_dim, PE_method, device)
     else:
-        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4)
         results = train_model_ppi(model, optimizer, x_train, train_edge_index, x_val, val_edge_index,
                               x_test, test_edge_index,
                               train_loader, val_loader, test_loader, device = device)

@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 from torch_geometric.typing import Adj, OptTensor, PairTensor
 
 import torch
@@ -9,7 +9,7 @@ from torch_sparse import SparseTensor, matmul, fill_diag, sum as sparsesum, mul
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import add_remaining_self_loops
 from torch_geometric.utils.num_nodes import maybe_num_nodes
-
+from torch_geometric.typing import Adj, OptPairTensor, Size
 import numpy as np
 import scipy.sparse as sp
 import torch

@@ -1,12 +1,11 @@
 import argparse
 import dgl
-from utils import *
 from dataset import *
 from train import *
 from sklearn.preprocessing import normalize
 from sklearn.decomposition import PCA
 from sklearn import random_projection
-
+import sys
 sys.path.append("..")
 from Graph_embedding import DeepWalk
 from model import *
@@ -32,7 +31,7 @@ parser.add_argument('--source_dataset', type=str, default='cora', help = 'datase
 parser.add_argument('--target_dataset', type=str, default='citeseer', help = 'dataset name', 
                     choices = ['cora', 'citeseer', 'pubmed', 'PTBR', 'RU', 'ENGB', 'ES', 'chameleon'])
 parser.add_argument('--PE_method', type=str, default="DW", help = 'positional encoding techniques',
-                    chocies = ['DW', 'LE'])
+                    choices = ['DW', 'LE'])
 parser.add_argument('--feature_type', type=str, default="N", help = 'features type, N means node feature, C means constant feature (node degree)',
                     choices = ['N', 'C'])
 # GNN settings
@@ -66,8 +65,8 @@ for i in [115,105,100]:
                                                                                                                     val_ratio = args.val_ratio, seed = i)
         test_dataset, test_matrix, test_edge_index = create_dataloader_target_plus(adj_target, test_ratio = args.test_ratio, seed = i)
     
-        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args,batch_size, shuffle=True)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args,batch_size, shuffle=True)
+        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
 
     else:
 
@@ -76,9 +75,9 @@ for i in [115,105,100]:
                                                                                         seed = i)
         test_dataset, test_matrix, test_edge_index = create_dataloader_target(adj_target, test_ratio = args.test_ratio, seed = i)
     
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args,batch_size, shuffle=True)
-        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args,batch_size, shuffle=True)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args,batch_size, shuffle=True)
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
 
     if args.feature_type == 'N':
         transformer = random_projection.GaussianRandomProjection(n_components = 128)
@@ -178,6 +177,6 @@ for i in [115,105,100]:
     auc.append(results[0])
     ap.append(results[1])
     sum_metric += results
-    print('auc_test: {:.4f}'.format(sum_metric[0]/len(seed_list)),
-          'ap_test: {:.4f}'.format(sum_metric[1]/len(seed_list)))
-    print("Total number of paramerters in networks is {}  ".format(sum(x.numel() for x in model.parameters())))
+print('auc_test: {:.4f}'.format((sum_metric/len(seed_list))[0][0]),
+      'ap_test: {:.4f}'.format((sum_metric/len(seed_list))[0][1]))
+print("Total number of paramerters in networks is {}  ".format(sum(x.numel() for x in model.parameters())))
