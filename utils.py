@@ -8,6 +8,7 @@ import torch
 import pandas as pd
 import json
 import dgl
+import random
 
 def parse_index_file(filename):
     """Parse index file."""
@@ -33,14 +34,14 @@ def load_data_citation(dataset_str):
     names = ['x', 'y', 'tx', 'ty', 'allx', 'ally', 'graph']
     objects = []
     for i in range(len(names)):
-        with open("data/Citation_network/ind.{}.{}".format(dataset_str, names[i]), 'rb') as f:
+        with open("../data/Citation_network/ind.{}.{}".format(dataset_str, names[i]), 'rb') as f:
             if sys.version_info > (3, 0):
                 objects.append(pkl.load(f, encoding='latin1'))
             else:
                 objects.append(pkl.load(f))
 
     x, y, tx, ty, allx, ally, graph = tuple(objects)
-    test_idx_reorder = parse_index_file("data/ind.{}.test.index".format(dataset_str))
+    test_idx_reorder = parse_index_file("../data/Citation_network/ind.{}.test.index".format(dataset_str))
     test_idx_range = np.sort(test_idx_reorder)
 
     if dataset_str == 'citeseer':
@@ -65,8 +66,8 @@ def load_data_citation(dataset_str):
     return adj, features
 
 def load_data_cham(dataset_name):
-    graph_adjacency_list_file_path = os.path.join('data/Wiki_network', dataset_name, 'out1_graph_edges.txt')
-    graph_node_features_and_labels_file_path = os.path.join('data/Wiki_network',dataset_name, f'out1_node_feature_label.txt')
+    graph_adjacency_list_file_path = os.path.join('../data/Wiki_network', dataset_name, 'out1_graph_edges.txt')
+    graph_node_features_and_labels_file_path = os.path.join('../data/Wiki_network',dataset_name, f'out1_node_feature_label.txt')
     G = nx.DiGraph()
     graph_node_features_dict = {}
     graph_labels_dict = {}
@@ -140,8 +141,8 @@ def load_features(features_path):
     return features
 
 def load_data_twitch(dataset):
-    graph = load_graph('data/Social_network/edges/' + dataset +'_edges.csv')
-    features = load_features('data/Social_network/features/' + dataset + '.json')
+    graph = load_graph('../data/Social_network/edges/' + dataset +'_edges.csv')
+    features = load_features('../data/Social_network/features/' + dataset + '.json')
     adj = nx.adjacency_matrix(graph)
     adj =adj.todense()
     features_blank = np.zeros((len(features),3170))
