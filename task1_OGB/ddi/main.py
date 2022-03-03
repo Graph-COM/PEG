@@ -23,7 +23,7 @@ import sys
 sys.path.append("../..")
 from Graph_embedding import DeepWalk
 
-
+#modified from: https://github.com/snap-stanford/ogb/tree/master/examples/linkproppred/ddi
 class PEG(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_layers,
                  dropout):

@@ -30,7 +30,7 @@ import random
 import math
 from sklearn.preprocessing import normalize
 
-#modified from: 
+#modified from: https://github.com/snap-stanford/ogb/tree/master/examples/linkproppred/collab
 class PEG(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_layers,
                  dropout):
