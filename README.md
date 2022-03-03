@@ -1,24 +1,28 @@
 # PEG
-The official implementation of PEG for our paper: Equivariant and Stable Positional Encoding for More Powerful Graph Neural Networks. (https://openreview.net/pdf?id=e95i1IHcWj)
+The official implementation of PEG for our paper: [Equivariant and Stable Positional Encoding for More Powerful Graph Neural Networks](https://openreview.net/pdf?id=e95i1IHcWj).
 
 ## Introduction
-In this work we propose a principled way of using PE to build more powerful GNNs. The key idea is to use separate channels to update the original node features and positional features. The GNN architecture keeps not only permutation equivariant w.r.t. node features but also rotation equivariant w.r.t. positional features. This idea applies to a broad range of PE techniques that can be formulated as matrix factorization such as Laplacian Eigenmap (LE and Deepwalk). We design a GNN layer PEG that satisfies such requirements. Figure 1 shows the architecture of PEG.
+In this work, we propose a principled way of using stable Positional Encoding (PE) to build more powerful GNNs. The key idea is to use separate channels to update the original node features and positional features. To achieve PE-stability, the GNN layer should keep not only permutation equivariance w.r.t. node features but also rotation equivariance w.r.t. positional features. This idea applies to a broad range of PE techniques that can be formulated as matrix factorization such as Laplacian Eigenmap (LE) and Deepwalk (DW).
 
-<p align="center"><img src="./data/PEG.png" width=85% height=85%></p>
-<p align="center"><em>Figure 1.</em> The PEG layer.</p>
+We design a GNN layer with edge weights according to distance between the end nodes of the edge and keep the position features unchanged. This satisfies the above two necessary conditions and gives the **PE-stable GNN layer** as
 
+<p align="center">
+  <img src="https://latex.codecogs.com/svg.image?g_{\text{PEG}}(A,X,Z)&space;=&space;\left(\psi\left[\left(\hat{A}&space;\odot&space;\Xi\right)&space;X&space;W&space;\right],&space;Z\right),\,\text{where&space;$\Xi_{uv}=\phi\left(\|Z_u-Z_v\|\right)$,&space;$\forall&space;u,v\in[N]$}." title="g_{\text{PEG}}(A,X,Z) = \left(\psi\left[\left(\hat{A} \odot \Xi\right) X W \right], Z\right),\,\text{where $\Xi_{uv}=\phi\left(\|Z_u-Z_v\|\right)$, $\forall u,v\in[N]$}." />
+</p>
+
+Here, <img src="https://latex.codecogs.com/svg.image?\psi" title="\psi" /> is an element-wise activation function, <img src="https://latex.codecogs.com/svg.image?\phi" title="\phi" /> is an MLP mapping from <img src="https://latex.codecogs.com/svg.image?\mathbb{R}\rightarrow&space;\mathbb{R}" title="\mathbb{R}\rightarrow \mathbb{R}" /> and <img src="https://latex.codecogs.com/svg.image?\odot" title="\odot" /> is the Hadamard product.
 
 ## Requirements ##
 (Other versions may work, but are untested)
-0. Python 3.7
-1. PyTorch 1.8.1 Cuda 10.2
-2. NetworkX 2.6.2
-3. dgl 0.6.1
-4. Numpy 1.20.3
-5. Scipy 1.6.2
-6. Scikit-Learn 0.24.1
-7. Tensorflow 2.6.0
-8. torch-geometric 1.7.2
+* Python 3.7
+* PyTorch 1.8.1 Cuda 10.2
+* Tensorflow 2.6.0
+* NetworkX 2.6.2
+* Numpy 1.20.3
+* Scipy 1.6.2
+* Scikit-Learn 0.24.1
+* dgl 0.6.1
+* torch-geometric 1.7.2
 
 ## PEG Environment Setup ##
 - Install basic dependencies to virtual environment and activate it: 
@@ -39,7 +43,7 @@ pip install torch-geometric==1.7.2
 For more details, please refer to the [PyTorch](https://pytorch.org/) and [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/en/1.6.3/notes/installation.html). The code of this repository is lately tested with Python 3.7.11 + PyTorch 1.8.1 + torch-geometric 1.7.2.
 
 #### Run Examples
-In Task 1, the model gets trained, validated and tested over the same graphs while using different link sets. In Task 2, the graph used for training/validation is different from the one used for testing. Both tasks may reflect the effectiveness of a model while Task 2 may better demonstrate the model's generalization capability that strongly depends on permutation equivariance and stability.
+In Task 1 (traditional link prediction), the model gets trained, validated and tested over the same graphs while using different link sets. In Task 2 (domain-shift link prediction), the graph used for training/validation is different from the one used for testing. Both tasks may reflect the effectiveness of a model while Task 2 may better demonstrate the model's generalization capability that strongly depends on permutation equivariance and stability.
 ##### Task1
 ```bash
 cd task1
@@ -53,10 +57,7 @@ PEG-LE+ using constant feature on cora
 python main.py --PE_method LE --dataset cora --feature_type C --random_partition
 ```
 
-For ogbl-ddi and ogbl-collab
-```bash
-cd OGB
-```
+For ddi and collab, the script is under the folder task1_OGB.
 
 ##### Task2
 ```bash
@@ -119,7 +120,7 @@ optional arguments:
 Please refer to our paper. Haorui Wang, Haoteng Yin, Muhan Zhang, Pan Li. [Equivariant and Stable Positional Encoding for More Powerful Graph Neural Networks](https://openreview.net/pdf?id=e95i1IHcWj). In *International Conference on Learning Representations (ICLR)*, 2022
 
 ```
-  @inproceedings{wang2021equivariant,
+  @inproceedings{wang2022equivariant,
   title={Equivariant and Stable Positional Encoding for More Powerful Graph Neural Networks},
   author={Wang, Haorui and Yin, Haoteng and Zhang, Muhan and Li, Pan},
   booktitle={International Conference on Learning Representations},
