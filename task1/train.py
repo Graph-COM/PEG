@@ -132,10 +132,8 @@ def train_model_plus(model, optimizer, x, edge_index, id_train_positive, id_trai
     t_total = time.time()
     model_max = copy.deepcopy(model)
     random.shuffle(id_train_positive)
-    #random.shuffle(id_train_negative)
     slice_num = int(len(id_train_positive)/10)
     positive_train = [id_train_positive[i:i+slice_num] for i in range(0,len(id_train_positive),slice_num)]
-    #negative_train = [id_train_negative[i:i+slice_num] for i in range(0,len(id_train_negative),slice_num)]
     print('Start Training...')
     
     pipe_train_x_list = []
@@ -224,7 +222,6 @@ def train_model_plus(model, optimizer, x, edge_index, id_train_positive, id_trai
     
             for i, (label, inp) in enumerate(train_loader):
                 label = label.cuda(device)
-                # print(inp[0].shape)
                 model.train()
                 optimizer.zero_grad()
                 output = model(pipe_train_x[small_epoch], pipe_edge_index[small_epoch],
@@ -235,7 +232,6 @@ def train_model_plus(model, optimizer, x, edge_index, id_train_positive, id_trai
             
                 loss_train = loss_fct(n, label.float())
             
-                #loss_history.append(loss_train)
                 loss_train.backward()
                 optimizer.step()
 

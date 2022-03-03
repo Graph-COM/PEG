@@ -551,7 +551,7 @@ for i in [115,105,100]:
         results = train_model_plus_ppi(model, optimizer, x_train, x_val, x_test, edge_index, val_edge_index, test_edge_index,
                      id_train_positive, id_train_negative,
                      train_matrix, features_train, features_val, features_test,
-                val_loader, test_loader, PE_dim, PE_method, device)
+                val_loader, test_loader, args.PE_dim, args.PE_method, device)
     else:
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4)
         results = train_model_ppi(model, optimizer, x_train, train_edge_index, x_val, val_edge_index,

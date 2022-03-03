@@ -30,7 +30,7 @@ import random
 import math
 from sklearn.preprocessing import normalize
 
-
+#modified from: 
 class PEG(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_layers,
                  dropout):
@@ -260,7 +260,7 @@ def main():
     parser.add_argument('--PE_dim', type=int, default=128)
     parser.add_argument('--log_steps', type=int, default=1)
     parser.add_argument('--use_sage', action='store_true')
-    parser.add_argument('--num_layers', type=int, default=3)
+    parser.add_argument('--num_layers', type=int, default=2)
     parser.add_argument('--hidden_channels', type=int, default=256)
     parser.add_argument('--dropout', type=float, default=0.0)
     parser.add_argument('--batch_size', type=int, default=64 * 1024)

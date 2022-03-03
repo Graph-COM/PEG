@@ -24,6 +24,7 @@ def sample_mask(idx, l):
     mask[idx] = 1
     return np.array(mask, dtype=np.bool)
 
+#source from: https://github.com/graphdml-uiuc-jlu/geom-gcn/utils.py
 def load_data_citation(dataset_str):
     """
     Loads input data from citation network
@@ -112,7 +113,6 @@ def load_data_cham(dataset_name):
     labels = np.array(
         [label for _, label in sorted(G.nodes(data='label'), key=lambda x: x[0])])
     adj = torch.FloatTensor(np.array(adj.todense()))
-    #features = torch.FloatTensor(np.array(features))
     return adj, features
 
 

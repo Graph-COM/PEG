@@ -17,7 +17,6 @@ class Net(torch.nn.Module):
                                use_formerinfo = use_former_information, update_coors = update_coors)
         self.loss_fn = torch.nn.BCEWithLogitsLoss()
         self.fc = nn.Linear(2, 1)
-        #self.output = nn.Linear(4,1)
 
     def forward(self, x, edge_index, idx):
 
@@ -78,6 +77,7 @@ class CoorsNorm(nn.Module):
         phase = self.fn(norm)
         return (phase * normed_coors)
     
+#source from: https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/nn/conv/gcn_conv.html#GCNConv
 def gcn_norm(edge_index, edge_weight=None, num_nodes=None, improved=False,
              add_self_loops=True, dtype=None):
 
@@ -115,7 +115,7 @@ def gcn_norm(edge_index, edge_weight=None, num_nodes=None, improved=False,
         deg_inv_sqrt.masked_fill_(deg_inv_sqrt == float('inf'), 0)
         return edge_index, deg_inv_sqrt[row] * edge_weight * deg_inv_sqrt[col]
 
-
+#modified from: https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/nn/conv/gcn_conv.html#GCNConv
 class PEG_layer(MessagePassing):
     """
 
@@ -145,7 +145,7 @@ class PEG_layer(MessagePassing):
             :class:`torch_geometric.nn.conv.MessagePassing`.
     """
 
-    def __init__(self, feats_dim: int, pos_dim: int,
+    def __init__(self, feats_dim: int, pos_dim: int, edge_mlp_dim: int = 32,
                  improved: bool = False, cached: bool = False,
                  add_self_loops: bool = True, normalize: bool = True,
                  bias: bool = True, update_coors: bool = False,
@@ -162,15 +162,14 @@ class PEG_layer(MessagePassing):
         self.cached = cached
         self.add_self_loops = add_self_loops
         self.normalize = normalize
-        
+        self.edge_mlp_dim = edge_mlp_dim
         self.coors_norm = CoorsNorm() if norm_coors else nn.Identity()
 
         self._cached_edge_index = None
         self._cached_adj_t = None
         
-        self.edge_mlp1 = nn.Linear(1, 32)
-        self.edge_mlp2 = nn.Linear(32, 1)
-        #self.edge_mlp = nn.Linear(feats_dim + 1, feats_dim)
+        self.edge_mlp1 = nn.Linear(1, edge_mlp_dim)
+        self.edge_mlp2 = nn.Linear(edge_mlp_dim, 1)
         self.weight_withformer = Parameter(torch.Tensor(feats_dim + feats_dim, feats_dim))
         self.weight_noformer = Parameter(torch.Tensor(feats_dim, feats_dim))
         self.coors_mlp = nn.Sequential(
@@ -221,16 +220,18 @@ class PEG_layer(MessagePassing):
                         self._cached_adj_t = edge_index
                 else:
                     edge_index = cache
-
+        else:
+            print('We normalize the adjacent matrix in PEG.')
         
         
         rel_coors = coors[edge_index[0]] - coors[edge_index[1]]
+        neighbour_coors = coors[edge_index[1]]
         rel_dist  = (rel_coors ** 2).sum(dim=-1, keepdim=True)
 
         # propagate_type: (x: Tensor, edge_weight: OptTensor)
         # pos: l2 norms
         # rel_coors: used in updating positional encodings, not required for PEG
-        hidden_out, coors_out = self.propagate(edge_index, x = feats, edge_weight=edge_weight, pos=rel_dist, coors=coors, rel_coors=rel_coors,
+        hidden_out, coors_out = self.propagate(edge_index, x = feats, edge_weight=edge_weight, pos=rel_dist, coors=coors, rel_coors=rel_coors, neighbour_coors = neighbour_coors,
                              size=None)
         
         
@@ -242,10 +243,10 @@ class PEG_layer(MessagePassing):
 
 
     def message(self, x_i: Tensor, x_j: Tensor, edge_weight: OptTensor, pos) -> Tensor:
-        temp = self.edge_mlp1(pos)
-        temp = self.edge_mlp2(temp)
-        temp = torch.sigmoid(temp)
-        return x_j if edge_weight is None else temp * edge_weight.view(-1, 1) * x_j
+        PE_edge_weight = self.edge_mlp1(pos)
+        PE_edge_weight = self.edge_mlp2(PE_edge_weight)
+        PE_edge_weight = torch.sigmoid(PE_edge_weight)
+        return x_j if edge_weight is None else PE_edge_weight * edge_weight.view(-1, 1) * x_j
     
     def propagate(self, edge_index: Adj, size: Size = None, **kwargs):
         """The initial call to start propagating messages.
@@ -273,8 +274,8 @@ class PEG_layer(MessagePassing):
         # update coors if specified
         if self.update_coors:
             coor_wij = self.coors_mlp(m_ij)
-            kwargs["rel_coors"] = self.coors_norm(kwargs["rel_coors"])
-            mhat_i = self.aggregate(coor_wij * kwargs["rel_coors"], **aggr_kwargs)
+            kwargs["neighbour_coors"] = self.coors_norm(kwargs["neighbour_coors"])
+            mhat_i = self.aggregate(coor_wij * kwargs["neighbour_coors"], **aggr_kwargs)
             coors_out = kwargs["coors"] + mhat_i
         else:
             coors_out = kwargs["coors"]
