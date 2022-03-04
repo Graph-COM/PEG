@@ -2,11 +2,7 @@
 
 """
 
-
-
-Author:
-
-    Weichen Shen,wcshen1994@163.com
+Source：https://github.com/shenweichen/GraphEmbedding
 
 
 
