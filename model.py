@@ -2,7 +2,7 @@ import torch.nn.functional as F
 from utils import *
 from dataset import *
 from PEG_conv.PEG_PYG import PEG_conv
-
+from torch import nn
 class Net(torch.nn.Module):
     def __init__(self, in_feats_dim, pos_dim, hidden_dim, use_former_information = False):
         super(Net, self).__init__()
