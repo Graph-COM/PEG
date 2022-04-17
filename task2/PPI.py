@@ -539,11 +539,8 @@ for i in [115,105,100]:
     x_test = x_test.cuda(device)
     test_edge_index = test_edge_index.cuda(device)
     
-    model = Net(feats_dim = len(features_train[1]), pos_dim = args.PE_dim,
-               use_former_information = False, update_coors = False)
+    model = Net(in_feats_dim = len(features[1]), pos_dim = args.PE_dim, hidden_dim = args.hidden_dim)
     
-    #optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay = 5e-4)
-    #optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, weight_decay=5e-4)
     
     model = model.to(device)
     if args.random_partition:

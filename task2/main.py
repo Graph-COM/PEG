@@ -159,8 +159,7 @@ for i in seed_list:
     x_target = x_target.cuda(device)
     edge_index_target = edge_index_target.cuda(device)
     
-    model = Net(feats_dim = len(features_source[1]), pos_dim = args.PE_dim,
-               use_former_information = False, update_coors = False)
+    model = Net(in_feats_dim = len(features[1]), pos_dim = args.PE_dim, hidden_dim = args.hidden_dim)
     
     
     model = model.to(device)

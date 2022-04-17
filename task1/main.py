@@ -114,11 +114,8 @@ for i in seed_list:
     
     x = x.cuda(device)
     edge_index = edge_index.cuda(device)
-    
-    model = Net(feats_dim = len(features[1]), pos_dim = args.PE_dim,
-               use_former_information = False, update_coors = False)
-    
-    
+        
+    model = Net(in_feats_dim = len(features[1]), pos_dim = args.PE_dim, hidden_dim = args.hidden_dim)
     model = model.to(device)
     if args.random_partition:
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
