@@ -118,8 +118,10 @@ for i in seed_list:
     model = Net(in_feats_dim = len(features[1]), pos_dim = args.PE_dim, hidden_dim = args.hidden_dim)
     model = model.to(device)
     if args.random_partition:
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
-        #optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay = 5e-4)
+        if args.feature_type == 'N':
+            optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
+        elif args.feature_type == 'C':
+            optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay = args.weight_decay)
         results = train_model_plus(model, optimizer, x, edge_index,id_train_positive, id_train_negative,train_matrix, features, 
                     test_loader, val_loader, PE_dim = args.PE_dim, PE_method = args.PE_method, training_batch_size = args.batch_size, device = device)
     else:

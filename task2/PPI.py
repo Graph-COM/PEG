@@ -539,12 +539,15 @@ for i in [115,105,100]:
     x_test = x_test.cuda(device)
     test_edge_index = test_edge_index.cuda(device)
     
-    model = Net(in_feats_dim = len(features[1]), pos_dim = args.PE_dim, hidden_dim = args.hidden_dim)
+    model = Net(in_feats_dim = len(features_train[1]), pos_dim = args.PE_dim, hidden_dim = args.hidden_dim)
     
     
     model = model.to(device)
     if args.random_partition:
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4)
+        if args.feature_type == 'N':
+            optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
+        elif args.feature_type == 'C':
+            optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay = args.weight_decay)
         results = train_model_plus_ppi(model, optimizer, x_train, x_val, x_test, edge_index, val_edge_index, test_edge_index,
                      id_train_positive, id_train_negative,
                      train_matrix, features_train, features_val, features_test,
@@ -557,4 +560,7 @@ for i in [115,105,100]:
     auc.append(results[0])
     ap.append(results[1])
     sum_metric += results
-    print("Total number of paramerters in networks is {}  ".format(sum(x.numel() for x in model.parameters())))
+
+print('auc_test: {:.4f}'.format((sum_metric/len(seed_list))[0][0]),
+      'ap_test: {:.4f}'.format((sum_metric/len(seed_list))[0][1]))
+print("Total number of paramerters in networks is {}  ".format(sum(x.numel() for x in model.parameters())))

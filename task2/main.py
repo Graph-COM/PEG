@@ -96,7 +96,7 @@ for i in seed_list:
         degree_source = degree_source.reshape(1,len(nparray_adj_source[0]))
         degree_source = degree_source.T
         constant_feature_source = np.matrix(degree_source)
-        constant_feature_source = normalize(constant_feature_source, norm='l2', axis=0, copy=True, return_norm=False)
+        #constant_feature_source = normalize(constant_feature_source, norm='l2', axis=0, copy=True, return_norm=False)
         features_source = torch.Tensor(constant_feature_source)
     
         nparray_adj_target = test_matrix
@@ -104,7 +104,7 @@ for i in seed_list:
         degree_target = degree_target.reshape(1,len(nparray_adj_target[0]))
         degree_target = degree_target.T
         constant_feature_target = np.matrix(degree_target)
-        constant_feature_target = normalize(constant_feature_target, norm='l2', axis=0, copy=True, return_norm=False)
+        #constant_feature_target = normalize(constant_feature_target, norm='l2', axis=0, copy=True, return_norm=False)
         features_target = torch.Tensor(constant_feature_target)
     
 
@@ -159,13 +159,15 @@ for i in seed_list:
     x_target = x_target.cuda(device)
     edge_index_target = edge_index_target.cuda(device)
     
-    model = Net(in_feats_dim = len(features[1]), pos_dim = args.PE_dim, hidden_dim = args.hidden_dim)
+    model = Net(in_feats_dim = len(features_source[1]), pos_dim = args.PE_dim, hidden_dim = args.hidden_dim)
     
     
     model = model.to(device)
     if args.random_partition:
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
-        #optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay = 5e-4)
+        if args.feature_type == 'N':
+            optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
+        elif args.feature_type == 'C':
+            optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay = args.weight_decay)
         results = train_model_plus(model, optimizer, x, edge_index, x_target, edge_index_target, 
                                                 id_train_positive, id_train_negative,train_matrix, features_source, 
                                                 val_loader, test_loader, PE_dim = args.PE_dim, PE_method = args.PE_method, training_batch_size = args.batch_size, device = device)

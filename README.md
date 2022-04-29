@@ -54,7 +54,7 @@ python main.py --PE_method DW --dataset cora --feature_type N
 ```
 PEG-LE+ using constant feature on cora
 ```bash
-python main.py --PE_method LE --dataset cora --feature_type C --random_partition
+python main.py --PE_method LE --dataset cora --feature_type C --random_partition --hidden_dim 1
 ```
 
 For ddi and collab, the script is under the folder task1_OGB.
@@ -69,11 +69,14 @@ python main.py --PE_method DW --source_dataset cora --target_dataset citeseer --
 ```
 PEG-LE+ using constant feature on cora->citeseer
 ```bash
-python main.py --PE_method LE --source_dataset cora --target_dataset citeseer --feature_type C --random_partition
+python main.py --PE_method LE --source_dataset cora --target_dataset citeseer --feature_type C --random_partition --hidden_dim 1
 ```
 For PPI dataset
 ```bash
 python PPI.py --PE_method LE --feature_type N
+```
+```bash
+python PPI.py --PE_method DW --feature_type C --hidden_dim 1
 ```
 ## Usage Summary
 ```
