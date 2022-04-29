@@ -1,7 +1,7 @@
 import torch.nn.functional as F
 from utils import *
 from dataset import *
-from PEG_conv.PEG_PYG import PEG_conv
+from PEG_conv.peg_conv import PEGConv
 from torch import nn
 class Net(torch.nn.Module):
     def __init__(self, in_feats_dim, pos_dim, hidden_dim, use_former_information = False):
@@ -12,8 +12,8 @@ class Net(torch.nn.Module):
         self.pos_dim = pos_dim
         self.use_former_information = use_former_information
         
-        self.conv1 = PEG_conv(in_feats_dim = in_feats_dim, pos_dim = pos_dim, out_feats_dim = hidden_dim)
-        self.conv2 = PEG_conv(in_feats_dim = in_feats_dim, pos_dim = pos_dim, out_feats_dim = hidden_dim)
+        self.conv1 = PEGConv(in_feats_dim = in_feats_dim, pos_dim = pos_dim, out_feats_dim = hidden_dim)
+        self.conv2 = PEGConv(in_feats_dim = in_feats_dim, pos_dim = pos_dim, out_feats_dim = hidden_dim)
         self.loss_fn = torch.nn.BCEWithLogitsLoss()
         self.fc = nn.Linear(2, 1)
 
