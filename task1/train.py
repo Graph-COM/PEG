@@ -11,6 +11,7 @@ from dataset import *
 sys.path.append("..")
 from Graph_embedding import DeepWalk
 from utils import *
+from sklearn.preprocessing import normalize
 
 def test(model, loader, x, edge_index, device):
     m = torch.nn.Sigmoid()
@@ -163,6 +164,7 @@ def train_model_plus(model, optimizer, x, edge_index, id_train_positive, id_trai
             sp_adj = sp.coo_matrix(pipe_train_matrix)
             g = dgl.from_scipy(sp_adj)
             embeddings = np.array(laplacian_positional_encoding(g, PE_dim))
+            embeddings = normalize(embeddings, norm='l2', axis=1, copy=True, return_norm=False)
 
         pipe_train_edge_index = [i for i in id_train_positive if i not in id_train_pos]
         pipe_train_x = torch.cat((torch.tensor(embeddings), features), 1)
