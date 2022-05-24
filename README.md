@@ -22,7 +22,7 @@ Here, <img src="https://latex.codecogs.com/svg.image?\psi" title="\psi" /> is an
 * Scipy 1.6.2
 * Scikit-Learn 0.24.1
 * dgl 0.6.1
-* torch-geometric 1.7.2
+* torch-geometric 2.0.3
 
 ## PEG Environment Setup ##
 - Install basic dependencies to virtual environment and activate it: 

@@ -1,6 +1,7 @@
-name: PEG_env
+name: /scratch1/wang5386/py2021
 channels:
   - rusty1s
+  - pyg
   - pytorch
   - conda-forge
   - defaults
@@ -10,8 +11,8 @@ dependencies:
   - blas=1.0=mkl
   - brotlipy=0.7.0=py37h5e8e339_1001
   - bzip2=1.0.8=h7b6447c_0
-  - ca-certificates=2021.5.30=ha878542_0
-  - certifi=2021.5.30=py37h89c1867_0
+  - ca-certificates=2022.4.26=h06a4308_0
+  - certifi=2021.10.8=py37h06a4308_2
   - cffi=1.14.6=py37hc58025e_0
   - chardet=4.0.0=py37h89c1867_1
   - charset-normalizer=2.0.0=pyhd8ed1ab_0
@@ -56,14 +57,16 @@ dependencies:
   - nettle=3.7.3=hbbd107a_1
   - networkx=2.5.1=pyhd8ed1ab_0
   - ninja=1.10.2=hff7bd54_1
+  - numpy-base=1.20.3=py37h74d4b33_0
   - olefile=0.46=py37_0
   - openh264=2.1.0=hd408876_0
   - openjpeg=2.4.0=h3ad879b_0
-  - openssl=1.1.1l=h7f8727e_0
+  - openssl=1.1.1o=h7f8727e_0
   - pandas=1.3.0=py37h219a48f_0
   - pillow=8.3.1=py37h2c7a002_0
   - pip=21.0.1=py37h06a4308_0
   - pycparser=2.20=pyh9f0ad1d_2
+  - pyg=2.0.1=py37_torch_1.8.0_cu102
   - pyopenssl=20.0.1=pyhd8ed1ab_0
   - pyparsing=2.4.7=pyh9f0ad1d_0
   - pysocks=1.7.1=py37h89c1867_3
@@ -78,6 +81,7 @@ dependencies:
   - pytorch-sparse=0.6.11=py37_torch_1.8.0_cu102
   - pytorch-spline-conv=1.2.1=py37_torch_1.8.0_cu102
   - pytz=2021.1=pyhd8ed1ab_0
+  - pyyaml=6.0=py37h7f8727e_1
   - readline=8.1=h27cfd23_0
   - requests=2.26.0=pyhd8ed1ab_0
   - scikit-learn=0.24.2=py37ha9443f7_0
@@ -89,9 +93,12 @@ dependencies:
   - torchaudio=0.8.0=py37
   - torchvision=0.9.0=py37_cu102
   - tqdm=4.62.2=pyhd8ed1ab_0
+  - typing_extensions=4.1.1=pyh06a4308_0
   - urllib3=1.26.6=pyhd8ed1ab_0
   - wheel=0.37.0=pyhd3eb1b0_1
   - xz=5.2.5=h7b6447c_0
+  - yacs=0.1.6=pyhd3eb1b0_1
+  - yaml=0.2.5=h7b6447c_0
   - zlib=1.2.11=h7b6447c_3
   - zstd=1.4.9=haebb681_0
   - pip:
@@ -188,4 +195,5 @@ dependencies:
     - werkzeug==2.0.1
     - widgetsnbextension==3.5.1
     - wrapt==1.12.1
+    - yapf==0.32.0
     - zipp==3.5.0
