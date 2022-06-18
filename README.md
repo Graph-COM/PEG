@@ -120,7 +120,7 @@ optional arguments:
 ```
 
 ## Citation
-Please refer to our paper. Haorui Wang, Haoteng Yin, Muhan Zhang, Pan Li. [Equivariant and Stable Positional Encoding for More Powerful Graph Neural Networks](https://openreview.net/pdf?id=e95i1IHcWj). In *International Conference on Learning Representations (ICLR)*, 2022
+Please refer to our paper. Haorui Wang, Haoteng Yin, Muhan Zhang, Pan Li. [Equivariant and Stable Positional Encoding for More Powerful Graph Neural Networks](https://arxiv.org/abs/2203.00199). In *International Conference on Learning Representations (ICLR)*, 2022
 
 ```
   @inproceedings{wang2022equivariant,
