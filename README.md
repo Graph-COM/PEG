@@ -1,5 +1,5 @@
 # PEG
-The official implementation of PEG for our paper: [Equivariant and Stable Positional Encoding for More Powerful Graph Neural Networks](https://openreview.net/pdf?id=e95i1IHcWj).
+The official implementation of PEG for our paper: [Equivariant and Stable Positional Encoding for More Powerful Graph Neural Networks](https://arxiv.org/abs/2203.00199).
 
 ## Introduction
 In this work, we propose a principled way of using stable Positional Encoding (PE) to build more powerful GNNs. The key idea is to use separate channels to update the original node features and positional features. To achieve PE-stability, the GNN layer should keep not only permutation equivariance w.r.t. node features but also rotation equivariance w.r.t. positional features. This idea applies to a broad range of PE techniques that can be formulated as matrix factorization such as Laplacian Eigenmap (LE) and Deepwalk (DW).
